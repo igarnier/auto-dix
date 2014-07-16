@@ -1,0 +1,108 @@
+module Make :
+  functor (Concrete : Perm.PermSig) ->
+    sig
+      module Perm :
+        sig
+          type permrec =
+            Perm.Make(Perm.CycleBased).permrec = {
+            p : Perm.CycleBased.t;
+            invp : Perm.CycleBased.t;
+          }
+          type t =
+            Perm.Make(Perm.CycleBased).t =
+              Perm of permrec
+            | Prod of t * t
+            | Inv of t
+          val normalise_aux : t -> permrec
+          val of_concrete : Perm.CycleBased.t -> t
+          val normalise : t -> t
+          val identity : t
+          val is_identity : t -> bool
+          val invert : t -> t
+          val power : t -> int -> t
+          val action : t -> int -> int
+          val invert_action : t -> int -> int
+          val orbit_aux :
+            t list ->
+            (int * t) Queue.t -> t Prelude.IntMap.t -> t Prelude.IntMap.t
+          val orbit : t list -> int list -> t Prelude.IntMap.t
+          val of_cycles : int array list -> t
+          val print : t -> string
+          val print_orbit : t Prelude.IntMap.t -> string
+          module Operators :
+            sig val ( *** ) : t -> t -> t val ( ^^ ) : int -> t -> int end
+          val perm_test : unit -> unit
+        end
+      type subgroup = {
+        elt : int;
+        generators : Perm.t list;
+        transversal : Perm.t Prelude.IntMap.t;
+      }
+      type group = { base : int list; chain : subgroup list; }
+      val partial_bsgs_aux :
+        Concrete.t list -> int list -> int list * Concrete.t list
+      val partial_bsgs : Concrete.t list -> int list * Concrete.t list
+      val sift_aux : Prelude.IntMap.key list -> subgroup list -> bool
+      val sift : group -> Perm.t -> bool
+      exception EarlyExit of int
+      val find_point : Perm.t list -> Prelude.IntMap.key option
+    end
+module Make2 :
+  functor (Concrete : Perm.PermSig) ->
+    sig
+      module Perm :
+        sig
+          type permrec =
+            Perm.Make(Concrete).permrec = {
+            p : Concrete.t;
+            invp : Concrete.t;
+          }
+          type t =
+            Perm.Make(Concrete).t =
+              Perm of permrec
+            | Prod of t * t
+            | Inv of t
+          val normalise_aux : t -> permrec
+          val of_concrete : Concrete.t -> t
+          val normalise : t -> t
+          val identity : t
+          val is_identity : t -> bool
+          val invert : t -> t
+          val power : t -> int -> t
+          val action : t -> int -> int
+          val invert_action : t -> int -> int
+          val orbit_aux :
+            t list ->
+            (int * t) Queue.t -> t Prelude.IntMap.t -> t Prelude.IntMap.t
+          val orbit : t list -> int list -> t Prelude.IntMap.t
+          val of_cycles : int array list -> t
+          val print : t -> string
+          val print_orbit : t Prelude.IntMap.t -> string
+          module Operators :
+            sig val ( *** ) : t -> t -> t val ( ^^ ) : int -> t -> int end
+          val perm_test : unit -> unit
+        end
+      type subgroup = {
+        elt : int;
+        mutable generators : Perm.t list;
+        mutable transversal : Perm.t Prelude.IntMap.t;
+      }
+      type group = { base : int array; chain : subgroup array; }
+      type sift_outcome = Ok of Perm.t list | DropOut of int * Perm.t
+      val print_subgroup : subgroup -> string
+      val print : group -> string
+      val strip_aux :
+        subgroup array -> Perm.t -> int -> Perm.t list -> sift_outcome
+      val strip : subgroup array -> int -> Perm.t -> sift_outcome
+      val base_is_stable : Concrete.t -> int list -> bool
+      val partial_bsgs_aux :
+        Concrete.t list -> int list -> int list * Concrete.t list
+      val partial_bsgs : Concrete.t list -> int list * Perm.t list
+      val orbit : Perm.t list -> int -> Perm.t list * Perm.t Prelude.IntMap.t
+      val compute_partial_subgroup_chain : Concrete.t list -> group
+      val repr : int -> 'a Prelude.IntMap.t -> Perm.t -> 'a
+      val schreier_generators :
+        int -> Perm.t Prelude.IntMap.t -> Perm.t list -> Perm.t list
+      val schreier_sims_aux : subgroup array -> int -> unit
+      val schreier_sims : Concrete.t list -> group
+    end
