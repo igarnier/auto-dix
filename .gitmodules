@@ -1,0 +1,3 @@
+[submodule "permgroup"]
+	path = permgroup
+	url = https://github.com/igarnier/permgroup.git
