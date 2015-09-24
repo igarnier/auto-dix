@@ -4,6 +4,8 @@ module Make(G : GraphSig.S) =
     module VLabelSet     = Set.Make(G.V.L)
     module ELabelSet     = Set.Make(G.E.L)
     module ELabelSetMset = Aux.Multiset(ELabelSet)
+    module Perm          = Perm.CycleBased(G.V.L)
+    module SchreierSims  = SchreierSims.Make(Perm)
                                   
     type cell = { list : G.vertex list;
                   size : int }
@@ -167,35 +169,79 @@ module Make(G : GraphSig.S) =
           is_partition_discrete tail
        | _ -> false
 
+     let permutation_of_discrete_partition graph part =
+       let vertices = G.fold_vertex (fun v acc -> v :: acc) graph [] in
+       let part     = List.map
+                        (function
+                          | [x] -> x
+                          | _ -> failwith "permutation_of_discrete_partition: partition is not discrete"
+                        ) part
+       in
+       Perm.of_mapping (List.combine vertices part)
+
+     let apply_perm graph perm =
+       G.map_vertex (Perm.action perm) graph
+
+     let find_first_smallest =
+       let rec find_first_smallest_aux partition smallest =
+         match partition with
+         | [] -> smallest
+         | cell :: tail ->
+            if cell.size < smallest.size then
+              find_first_smallest_aux tail cell
+            else
+              find_first_smallest_aux tail smallest
+       in function
+       | [] -> failwith (Printf.sprintf "%s, %d: empty partition\n" __MODULE__ __LINE__)
+       | cell :: tail -> find_first_smallest_aux tail cell
+
+                    
      let rec explore graph explored aut minimizer partition =
        if is_partition_discrete partition then
-         let digest = apply_perm graph partition in
+         (* leaf of the search tree *)
+         let perm = permutation_of_discrete_partition partition in
+         let digest = apply_perm graph perm in
          begin match digest_find_opt digest explored with
-               | None      -> ()
-               | Some perm ->
-                  add_automorphism aut (Perm.product (Perm.inverse partition) perm)
+               | None -> ()
+               | Some perm' ->
+                  add_automorphism aut  (Perm.prod (Perm.inv perm) perm')
          end;
-         digest_add digest partition explored;
-         digest_min minimizer digest
+         digest_add digest perm explored
        else
+         let 
          find_first_smallest_cell graph explored aut minimizer partition
 
-     and find_first_smallest_cell graph explored aut minimizer partition smallest =
+     and find_first_smallest_cell graph explored aut minimizer partition =
        match partition with
-       | [] ->
-          None
-       | cell :: tail ->
-          match smallest with
-          |  -> 
-                          
-     and enumerate_splits graph explored aut minimizer partition =
-       match partition with
-       | [] ->
-          failwith (Printf.sprintf "Error at %s %d\n%!" __MODULE__ __LINE__)
-       | cell :: tail ->
-          
-             
+       | [] -> failwith ""
+       
+         
+     (* let rec explore graph explored aut minimizer partition = *)
+     (*   if is_partition_discrete partition then *)
+     (*     let digest = apply_perm graph partition in *)
+     (*     begin match digest_find_opt digest explored with *)
+     (*           | None      -> () *)
+     (*           | Some perm -> *)
+     (*              add_automorphism aut (Perm.product (Perm.inverse partition) perm) *)
+     (*     end; *)
+     (*     digest_add digest partition explored; *)
+     (*     digest_min minimizer digest *)
+     (*   else *)
+     (*     find_first_smallest_cell graph explored aut minimizer partition *)
 
+     (* and find_first_smallest_cell graph explored aut minimizer partition smallest = *)
+     (*   match partition with *)
+     (*   | [] -> *)
+     (*      None *)
+     (*   | cell :: tail -> *)
+     (*      match smallest with *)
+     (*      |  ->  *)
+                          
+     (* and enumerate_splits graph explored aut minimizer partition = *)
+     (*   match partition with *)
+     (*   | [] -> *)
+     (*      failwith (Printf.sprintf "Error at %s %d\n%!" __MODULE__ __LINE__) *)
+     (*   | cell :: tail -> *)
 
   end
 

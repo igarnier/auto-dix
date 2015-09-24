@@ -1,6 +1,6 @@
 main:
 	ocamlbuild -clean
-	ocamlbuild -use-ocamlfind -pkg unix,graphics,cairo -cflags -annot -I vlayout -I models main.native
+	ocamlbuild -use-ocamlfind -pkg unix,graphics,cairo -cflags -annot -I vlayout -I models -I permgroup canonical.byte
 
 simplest:
 	ocamlbuild -clean

@@ -1,7 +1,8 @@
-
 module Unit =
   struct
     type t = unit
+
+    let equal _ _ = true
 
     let compare _ _ = 0
 
@@ -12,6 +13,8 @@ module Bool =
   struct
     type t = bool
 
+    let equal (a : bool) (b : bool) = a = b
+               
     let compare a b =
       Pervasives.compare a b
 
@@ -23,6 +26,8 @@ module Int =
   struct
 
     type t = int
+
+    let equal (x : int) (y : int) = x = y
 
     let compare (x : int) (y : int) = x - y
 
@@ -63,6 +68,8 @@ module type PrintableOrderedType =
 
     type t
 
+    val equal : t -> t -> bool
+           
     val compare : t -> t -> int
 
     val to_string : t -> string
