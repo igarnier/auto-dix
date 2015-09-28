@@ -57,7 +57,7 @@ module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
         module L = VL
         
         type label = L.t
-
+                       
         type t = { v : Fresh.t; lbl : VL.t }
 
         let compare x y =
@@ -384,74 +384,15 @@ module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
       in
       fun graph -> loop graph []
 
-  (* Glue two graphs along partial injections on vertices /and/ edges. 
-   * /!\ We __assume__ the graphs have disjoint vertex and edge sets!
-   * TODO: assert correctness of vinj and einj (no edge twisting, color preservation)
-   *)
-                        (* let glue_graphs *)
-                        (*       (type vertex_color) *)
-                        (*       (type edge_color) *)
-                        (*       (g1 : (vertex_color, edge_color) t) *)
-                        (*       (g2 : (vertex_color, edge_color) t) *)
-                        (*       (vinj : (vertex, vertex) Pinj.t) *)
-                        (*       (einj : (Edge.uid, Edge.uid) Pinj.t) *)
-                        (*   = *)
-                        (*   (\* map each pair (v, v') \in vinj to a fresh vertex *\) *)
-                        (*   let fresh_vmap = vmap_from_vinj vinj in *)
-                        (*   let vmap       = extend_map_to_identity fresh_vmap in *)
-                        (*   (\* same for edges *\) *)
-                        (*   let fresh_emap = emap_from_einj vmap einj in *)
-                        (*   let emap       = extend_map_to_identity fresh_emap in   *)
-                        (*   let vertices_from_g1 = *)
-                        (*     IntMap.fold *)
-                        (*       (fun v clr acc -> *)
-                        (*        IntMap.add (vmap v) clr acc *)
-                        (*       ) g1.vertices IntMap.empty *)
-                        (*   in *)
-                        (*   let vertices_from_g1g2 = *)
-                        (*     IntMap.fold *)
-                        (*       (fun v clr acc -> *)
-                        (*        IntMap.add (vmap v) clr acc *)
-                        (*       ) g2.vertices vertices_from_g1 *)
-                        (*   in *)
-                        (*   let edges_from_g1 = *)
-                        (*     UPairMap.fold *)
-                        (*       (fun (v1, v2) edges acc -> *)
-                        (*        let pair  = (vmap v1, vmap v2) in *)
-                        (*        let edges = List.map (fun x -> { x with Edge.uid = emap x.Edge.uid }) edges in *)
-                        (*        let edges = Aux.filter_duplicates edges in *)
-                        (*        UPairMap.add pair edges acc *)
-                        (*       ) g1.edges UPairMap.empty *)
-                        (*   in *)
-                        (*   let edges_from_g1g2 = *)
-                        (*     UPairMap.fold *)
-                        (*       (fun (v1, v2) edges acc -> *)
-                        (*        let pair  = (vmap v1, vmap v2) in *)
-                        (*        let edges = List.map (fun x -> { x with Edge.uid = emap x.Edge.uid }) edges in *)
-                        (*        let prev_edges = *)
-                        (*          try UPairMap.find pair acc *)
-                        (*          with Not_found -> [] *)
-                        (*        in *)
-                        (*        let edges = Aux.filter_duplicates (List.rev_append prev_edges edges) in *)
-                        (*        UPairMap.add pair edges acc *)
-                        (*       ) g2.edges edges_from_g1 *)
-                        (*   in *)
-                        (*   let iedges = *)
-                        (*     UPairMap.fold *)
-                        (*       (fun (v1, v2) edges iedges -> *)
-                        (*        List.fold_left *)
-                        (*          (fun iedges { Edge.uid; color } -> *)
-                        (*           IntMap.add uid (v1, v2, color) iedges *)
-                        (*          ) iedges edges *)
-                        (*       ) edges_from_g1g2 IntMap.empty *)
-                        (*   in *)
-                        (*   let gluing = *)
-                        (*     { *)
-                        (*       vertices = vertices_from_g1g2; *)
-                        (*       edges  = edges_from_g1g2; *)
-                        (*       iedges = iedges *)
-                        (*     } *)
-                        (*   in *)
-                        (*   (gluing, fresh_vmap, vmap, fresh_emap, emap) *)
+                        
+    let compare
+          { vertices = lv; iedges = le }
+          { vertices = rv; iedges = re }                
+      =
+      let c = VertexSet.compare lv rv in
+      if c = 0 then
+        EdgeSet.compare le re
+      else
+        c
 
   end

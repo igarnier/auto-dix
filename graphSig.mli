@@ -5,6 +5,7 @@
  * - we ask for a max_vertex function for graphs, returning the biggest vertex.
  * - we don't ask for add_edge, remove_edge, mem_edge, find_edge, iter_edges
  * - the signature of fold_edges is richer
+ * - we want to compare graphs
  *)
 
 module type S =
@@ -229,4 +230,7 @@ module type S =
 
     val connected_components : t -> t list                                          
 
+    (* Total order on graphs *)
+    val compare : t -> t -> int
+                                      
   end                                                               

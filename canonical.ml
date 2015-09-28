@@ -4,8 +4,9 @@ module Make(G : GraphSig.S) =
     module VLabelSet     = Set.Make(G.V.L)
     module ELabelSet     = Set.Make(G.E.L)
     module ELabelSetMset = Aux.Multiset(ELabelSet)
-    module Perm          = Perm.CycleBased(G.V.L)
+    module Perm          = Perm.CycleBased(G.V)
     module SchreierSims  = SchreierSims.Make(Perm)
+    module GraphMap      = Map.Make(G)
                                   
     type cell = { list : G.vertex list;
                   size : int }
@@ -111,12 +112,12 @@ module Make(G : GraphSig.S) =
            hd :: (insert_into_bucket elt signature tail)
            
     let perform_cell_split ~graph ~target_cell ~splitter_cell ~context =
-      let _ =
-        Printf.printf
-          "performing cell split with target cell = %s and splitter cell = %s\n"
-          (Aux.to_sseq G.V.to_string "," target_cell.list)
-          (Aux.to_sseq G.V.to_string "," splitter_cell.list)
-      in
+      (* let _ = *)
+      (*   Printf.printf *)
+      (*     "performing cell split with target cell = %s and splitter cell = %s\n" *)
+      (*     (Aux.to_sseq G.V.to_string "," target_cell.list) *)
+      (*     (Aux.to_sseq G.V.to_string "," splitter_cell.list) *)
+      (* in *)
       let buckets =
         fold_cell
           ~cell:target_cell
@@ -135,9 +136,9 @@ module Make(G : GraphSig.S) =
       (* TODO optim: exception to exit *)
       fun graph partition ->
       Aux.zip_fold
-        (fun prefix cell suffix acc ->
+        (fun rev_prefix cell suffix acc ->
          (* TODO optim: if cell is singleton, skip all computations. *)
-         let prefix = List.rev prefix in (* zip_fold gives prefix in reverse order. *)
+         let prefix = List.rev rev_prefix in (* zip_fold gives prefix in reverse order. *)
          match acc with
          | Some result -> acc
          | None ->
@@ -148,11 +149,11 @@ module Make(G : GraphSig.S) =
               | None   -> exists_cell_shattering_cell graph (cell :: suffix) cell in
             match outcome with
             | None ->
-               let _ =
-                 Printf.printf
-                   "cell = %s is not splittable\n"
-                   (Aux.to_sseq G.V.to_string "," cell.list)
-               in
+               (* let _ = *)
+               (*   Printf.printf *)
+               (*     "cell = %s is not splittable\n" *)
+               (*     (Aux.to_sseq G.V.to_string "," cell.list) *)
+               (* in *)
                None
             | Some cell' ->
                Some (perform_cell_split ~graph ~target_cell:cell ~splitter_cell:cell' ~context:(prefix, suffix))
@@ -165,56 +166,151 @@ module Make(G : GraphSig.S) =
 
      let rec is_partition_discrete = function
        | [] -> true
-       | [_] :: tail ->
-          is_partition_discrete tail
-       | _ -> false
+       | cell :: tail ->
+          (cell.size = 1) && (is_partition_discrete tail)
 
      let permutation_of_discrete_partition graph part =
-       let vertices = G.fold_vertex (fun v acc -> v :: acc) graph [] in
-       let part     = List.map
-                        (function
-                          | [x] -> x
-                          | _ -> failwith "permutation_of_discrete_partition: partition is not discrete"
-                        ) part
+       let vertices = List.rev (G.fold_vertex (fun v acc -> v :: acc) graph []) in
+       let part : G.vertex list =
+         List.map
+           (fun cell ->
+            match cell.list with
+            | [x] -> x
+            | _ -> failwith "permutation_of_discrete_partition: partition is not discrete"
+           ) part
        in
-       Perm.of_mapping (List.combine vertices part)
+       Perm.of_mapping (List.combine part vertices)
 
      let apply_perm graph perm =
        G.map_vertex (Perm.action perm) graph
 
-     let find_first_smallest =
-       let rec find_first_smallest_aux partition smallest =
-         match partition with
-         | [] -> smallest
-         | cell :: tail ->
-            if cell.size < smallest.size then
-              find_first_smallest_aux tail cell
-            else
-              find_first_smallest_aux tail smallest
-       in function
-       | [] -> failwith (Printf.sprintf "%s, %d: empty partition\n" __MODULE__ __LINE__)
-       | cell :: tail -> find_first_smallest_aux tail cell
+     let points_in_same_orbit group point1 point2 =
+       SchreierSims.mem group (Perm.of_cycles [[| point1; point2 |]])
 
-                    
-     let rec explore graph explored aut minimizer partition =
-       if is_partition_discrete partition then
-         (* leaf of the search tree *)
-         let perm = permutation_of_discrete_partition partition in
-         let digest = apply_perm graph perm in
-         begin match digest_find_opt digest explored with
-               | None -> ()
-               | Some perm' ->
-                  add_automorphism aut  (Perm.prod (Perm.inv perm) perm')
-         end;
-         digest_add digest perm explored
+                     
+     type outcome_rec =
+       {
+         automorphisms : SchreierSims.t;
+         explored      : Perm.t GraphMap.t;
+         minimizer     : G.t
+       }
+
+     (* outcome of [explore] are: a canonical graph labeling and the automorphism group of [graph]*)
+     let find_graph graph explored =
+       try Some (GraphMap.find graph explored)
+       with Not_found -> None
+
+     let minimal_graph g1 g2 =
+       let c = G.compare g1 g2 in
+       if c < 0 then
+         g1
        else
-         let 
-         find_first_smallest_cell graph explored aut minimizer partition
+         g2
 
-     and find_first_smallest_cell graph explored aut minimizer partition =
+     let print_partition partition =
+       Aux.to_sseq (fun cell ->
+                    let s = Aux.to_sseq G.V.to_string "," cell.list in
+                    Printf.sprintf "(%s)" s
+                   ) "; " partition
+
+     let print_graph g =
+       let vertices = List.rev (G.fold_vertex (fun v acc -> v :: acc) g []) in
+       let edges    = List.flatten (G.fold_edges (fun _ _ e acc -> e :: acc) g []) in
+       let vs = Aux.to_sseq G.V.to_string "," vertices in
+       let es = Aux.to_sseq G.E.to_string "," edges in
+       Printf.printf "vertices = %s;\nedges =\n%s\n" vs es
+           
+     let rec explore graph ({ automorphisms; explored; minimizer } as outcome) partition =
+       if is_partition_discrete partition then
+         (* let _ = *)
+         (*   Printf.printf "explore discrete: %s\nexplored card:%d\n" (print_partition partition) (GraphMap.cardinal explored) *)
+         (*   (\* Printf.printf "explored:\n"; *\) *)
+         (*   (\* GraphMap.iter (fun gr _ -> print_graph gr) explored; *\) *)
+         (*   (\* Printf.printf "candidate:\n"; *\) *)
+         (*   (\* print_graph (apply_perm graph (permutation_of_discrete_partition graph partition)) *\) *)
+         (* in *)
+         (* leaf of the search tree *)
+         let perm   = permutation_of_discrete_partition graph partition in
+         (* let _ = Printf.printf "corresponding perm:\n%s\n" (Perm.print perm) in *)
+         let graph' = apply_perm graph perm in
+         match find_graph graph' explored with
+         | None ->
+            let outcome =
+              {
+                outcome with
+                explored  = GraphMap.add graph' perm explored;
+                minimizer = minimal_graph minimizer graph'
+              }
+            in
+            `Outcome outcome
+         | Some perm' ->
+            let auto = Perm.prod (Perm.inv perm) perm' in
+            (* let _    = Printf.printf "found automorphism\n%s\nobtained from\n%s\nand from\n%s\n" (Perm.print auto) (Perm.print perm) (Perm.print perm') in *)
+            let outcome =
+              if Perm.equal perm perm' then
+                outcome
+              else
+                { outcome with
+                  automorphisms = SchreierSims.extend automorphisms auto
+                }
+            in
+            `Outcome outcome
+            (* `FastExit(graph', outcome) *)
+       else
+         (* let _ = *)
+         (*   Printf.printf "explore indiscrete: %s\n" (print_partition partition) *)
+         (* in *)
+         find_first_nontrivial_cell graph outcome partition []
+
+     and find_first_nontrivial_cell graph outcome partition rev_prefix =
        match partition with
-       | [] -> failwith ""
-       
+       | [] -> (* all cells are discrete *)
+          failwith (Printf.sprintf "Error at %s %d: all cells are discrete\n%!" __MODULE__ __LINE__)
+       | cell :: tail ->
+          if cell.size <= 1 then
+            find_first_nontrivial_cell graph outcome tail (cell :: rev_prefix)
+          else
+            (* enumerate all splits up to automorphism *)
+            enumerate_splits graph outcome (rev_prefix, cell, tail)
+
+     and enumerate_splits graph ({ explored = pre_explored } as outcome) (rev_prefix, cell, tail) =
+       Aux.zip_fold
+         (fun rev_cell_prefix v cell_tail outcome_acc ->
+          match outcome_acc with
+          | `FastExit(_, _) ->
+             outcome_acc
+          | `Outcome outcome -> 
+             if List.exists (points_in_same_orbit outcome.automorphisms v) rev_cell_prefix then
+               outcome_acc
+             else
+               let cell' =
+                 {
+                   list = List.rev_append rev_cell_prefix cell_tail;
+                   size = cell.size - 1
+                 }
+               in
+               let v_cell     = { list = [v]; size = 1 } in
+               let partition' = List.rev_append rev_prefix (v_cell :: cell' :: tail) in
+               let partition' = refine_partition_until_equitable graph partition' in
+               let result     = explore graph outcome partition' in
+               match result with
+               | `Outcome _ -> result
+               | `FastExit(graph, outcome) ->
+                  (* are we responsible for this fast exit? *)
+                  if GraphMap.mem graph outcome.explored && not (GraphMap.mem graph pre_explored) then
+                    `Outcome outcome
+                  else
+                    result
+         ) (`Outcome outcome) cell.list
+
+     let compute graph =
+       let partition = initial_partition graph in
+       let partition = refine_partition_until_equitable graph partition in
+       match explore graph { automorphisms = []; explored = GraphMap.empty; minimizer = graph } partition
+       with
+       | `Outcome out -> (out.automorphisms, out.minimizer)
+       | `FastExit _  -> failwith "error"
+          
          
      (* let rec explore graph explored aut minimizer partition = *)
      (*   if is_partition_discrete partition then *)
@@ -244,110 +340,3 @@ module Make(G : GraphSig.S) =
      (*   | cell :: tail -> *)
 
   end
-
-
-(* module MakePurelyFunctional(G : GraphSig.S) = *)
-(*   struct *)
-
-(*     module VertexSet    = Set.Make(G.V) *)
-(*     module VertexMap    = Map.Make(G.V) *)
-(*     module VLabelSet    = Set.Make(G.V.L) *)
-(*     module VLabelMap    = Map.Make(G.V.L)                                                                     *)
-(*     module ELabelSet    = Set.Make(G.E.L) *)
-(*     module ELabelSetMset = Set.Make(ELabelSet) *)
-
-(*     (\* Let part = [V1; V2; V3; \ldots; Vn]. *)
-(*      * Invariants: for all v \in Vi, w \in Vj with i \le j then *)
-(*      * (G.V.label v) \le (G.V.label w). *)
-(*      *\) *)
-(*     type partition = VertexSet.t list *)
-
-(*     let _ = assert (not G.is_directed) *)
-
-(*     let vertex_vertex_sig : G.t -> G.vertex -> G.vertex -> ELabelSet.t = *)
-(*       fun graph v v' -> *)
-(*       let edges = G.find_all_edges graph v v' in *)
-(*       List.fold_left *)
-(*         (fun set e -> *)
-(*          ELabelSet.add (G.E.label e) set *)
-(*         ) ELabelSet.empty edges *)
-
-(*     let vertex_cell_sig : G.t -> G.vertex -> VertexSet.t -> ELabelSetMset.t = *)
-(*       fun graph v cell -> *)
-(*       VertexSet.fold *)
-(*         (fun v' setset -> *)
-(*          ELabelSetMset.add (vertex_vertex_sig graph v v') setset *)
-(*         ) cell ELabelSetMset.empty *)
-
-(*     let initial_partition : G.t -> partition = *)
-(*       fun graph -> *)
-(*       (\* Split vertices by their colors *\) *)
-(*       let tbl    = Hashtbl.create 51 in *)
-(*       let labels = *)
-(*         G.fold_vertex *)
-(*           (fun v acc -> *)
-(*            let label = G.V.label v in *)
-(*            Hashtbl.add tbl label v; *)
-(*            VLabelSet.add label acc *)
-(*           ) graph VLabelSet.empty *)
-(*       in *)
-(*       let partitions = *)
-(*         VLabelSet.fold *)
-(*           (fun label acc -> *)
-(*            (\* NB: label is given by fold in increasing order *\) *)
-(*            let vertices = *)
-(*              List.fold_left *)
-(*                (fun set elt -> *)
-(*                 VertexSet.add elt set *)
-(*                ) VertexSet.empty (Hashtbl.find_all tbl label) *)
-(*            in *)
-(*            vertices :: acc *)
-(*           ) labels [] *)
-(*       in *)
-(*       List.rev partitions *)
-               
-
-(*     let cell_shatters_cell : G.t -> VertexSet.t -> VertexSet.t -> bool  = *)
-(*       fun graph cell cell' -> *)
-(*       match cell with *)
-(*       | [] -> *)
-(*          failwith (Printf.sprintf "Error at %s %d\n%!" __MODULE__ __LINE__) *)
-(*       | vertex :: tail -> *)
-(*          let signature = vertex_cell_sig graph vertex cell' in *)
-(*          List.exists (fun v -> *)
-(*                       ELabelSetMset.compare (vertex_cell_sig graph v cell') signature <> 0 *)
-(*                      ) tail *)
-                     
-(*     let exists_cell_shattering_cell : G.t -> partition -> VertecSet.t -> VertexSet.t option = *)
-(*       fun graph cells cell_to_shatter -> *)
-(*       try Some (List.find (fun cell -> cell_shatters_cell graph cell cell_to_shatter) cells) *)
-(*       with Not_found -> None *)
-                  
-
-(*     (\* let refine_partition : partition -> partition option = *\) *)
-(*     (\*   fun cells -> *\) *)
-(*     (\*   zip_fold *\) *)
-(*     (\*     (fun prev cell tail acc -> *\) *)
-(*     (\*      match exists_cell_shattering_cell prev cell with *\) *)
-(*     (\*      | None -> *\) *)
-(*     (\*         match exists_cell_shattering_cell tail cell with *\) *)
-(*     (\*         | None ->  *\) *)
-(*     (\*     ) *\) *)
-      
-
-(*     (\* let rec zip_fold f acc prev list = *\) *)
-(*     (\*   match list with *\) *)
-(*     (\*   | [] -> acc *\) *)
-(*     (\*   | x :: l -> *\) *)
-(*     (\*      zip_fold f (f prev x l acc) (x :: prev) l *\) *)
-                  
-(*     (\* let zip_fold f acc l = zip_fold f acc [] l *\) *)
-
-(*     (\* let find_splitting_pair (cells : partition) = *\) *)
-(*     (\*   Aux.zip_fold *\) *)
-(*     (\*     (fun prev elt tail acc -> *\) *)
-         
-(*     (\*     ) acc cells *\) *)
-                                
-
-(*   end *)
