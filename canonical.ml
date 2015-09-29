@@ -251,7 +251,7 @@ module Make(G : GraphSig.S) =
                 outcome
               else
                 { outcome with
-                  automorphisms = SchreierSims.extend automorphisms auto
+                  automorphisms = SchreierSims.monte_carlo automorphisms auto
                 }
             in
             `Outcome outcome

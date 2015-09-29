@@ -1,20 +1,13 @@
-main:
+all:
 	ocamlbuild -clean
-	ocamlbuild -use-ocamlfind -pkg unix,graphics,cairo -cflags -annot -I vlayout -I models -I permgroup canonical.byte
+	ocamlbuild -use-ocamlfind -cflags -annot -I permgroup tests.native
 
-simplest:
+profile:
 	ocamlbuild -clean
-	ocamlbuild  -use-ocamlfind -pkg unix,graphics,cairo -cflags -annot simplest.native
+	ocamlbuild -use-ocamlfind -cflags -annot -I permgroup tests.p.native
 
-test-reduction:
-	ocamlbuild -clean
-	ocamlbuild  -use-ocamlfind -pkg unix,graphics,cairo -cflags -annot testreduction.d.byte
-
-test-hull:
-	ocamlbuild -clean
-	ocamlbuild  -use-ocamlfind -pkg unix,graphics,cairo -cflags -annot testconvexhull.d.byte
 
 clean:
 	ocamlbuild -clean
-	rm *.pdf *.mps *.log
+	rm *.pdf *.mps *.log gmon.out
 	./clean.sh

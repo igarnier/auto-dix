@@ -13,6 +13,11 @@ let vertex () =
     let vertex = G.V.create () in
     Hashtbl.add table v vertex;
     vertex
+
+let scan_dotted_integer s =
+  try Scanf.sscanf s "%d." (fun x -> x)
+  with _ ->
+    Scanf.sscanf s "%d" (fun x -> x)
                          
 let load filename =
   let open Printf in
@@ -35,7 +40,7 @@ let load filename =
            | node :: neighbours ->
               let node = Scanf.sscanf node "%d:" vertex in
               List.iter (fun str ->
-                         let neighbour = Scanf.sscanf str "%d" vertex in
+                         let neighbour = vertex (scan_dotted_integer str) in
                          graph := (G.add_edge_e !graph (G.E.create node () neighbour))
                         ) neighbours)
       done
@@ -68,7 +73,7 @@ let load filename =
 (*                   G.add_edge_e graph (G.E.create v () v') *)
 (*                  ) G.empty edges *)
 
-let graph = load "cmz-5.dre"
+let graph = load Sys.argv.(1)
 
 let (autos, mini) = C.compute graph
 
