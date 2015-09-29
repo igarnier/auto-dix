@@ -5,7 +5,7 @@ module Make(G : GraphSig.S) =
     module ELabelSet     = Set.Make(G.E.L)
     module ELabelSetMset = Aux.Multiset(ELabelSet)
     module Perm          = Perm.CycleBased(G.V)
-    module SchreierSims  = SchreierSims.Make(Perm)
+    module Permgroup  = Permgroup.Make(Perm)
     module GraphMap      = Map.Make(G)
                                   
     type cell = { list : G.vertex list;
@@ -185,12 +185,12 @@ module Make(G : GraphSig.S) =
        G.map_vertex (Perm.action perm) graph
 
      let points_in_same_orbit group point1 point2 =
-       SchreierSims.mem group (Perm.of_cycles [[| point1; point2 |]])
+       Permgroup.mem group (Perm.of_cycles [[| point1; point2 |]])
 
                      
      type outcome_rec =
        {
-         automorphisms : SchreierSims.t;
+         automorphisms : Permgroup.t;
          explored      : Perm.t GraphMap.t;
          minimizer     : G.t
        }
@@ -251,7 +251,7 @@ module Make(G : GraphSig.S) =
                 outcome
               else
                 { outcome with
-                  automorphisms = SchreierSims.monte_carlo automorphisms auto
+                  automorphisms = Permgroup.extend_mc automorphisms auto
                 }
             in
             `Outcome outcome
@@ -306,7 +306,7 @@ module Make(G : GraphSig.S) =
      let compute graph =
        let partition = initial_partition graph in
        let partition = refine_partition_until_equitable graph partition in
-       match explore graph { automorphisms = []; explored = GraphMap.empty; minimizer = graph } partition
+       match explore graph { automorphisms = Permgroup.trivial; explored = GraphMap.empty; minimizer = graph } partition
        with
        | `Outcome out -> (out.automorphisms, out.minimizer)
        | `FastExit _  -> failwith "error"
