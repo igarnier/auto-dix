@@ -1,4 +1,4 @@
-open Aux
+open Autotools
     
 module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
   struct
@@ -14,7 +14,7 @@ module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
 
         val equal : t -> t -> bool
 
-        module L : Aux.PrintableOrderedType
+        module L : Autotools.PrintableOrderedType
 
         type label = L.t
 
@@ -39,7 +39,7 @@ module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
 
         val dst : t -> vertex
 
-        module L : Aux.PrintableOrderedType
+        module L : Autotools.PrintableOrderedType
                          
         type label = L.t
 
@@ -80,7 +80,7 @@ module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
                          
       end
 
-    module UPair = Aux.UnorderedPair(V)
+    module UPair = Autotools.UnorderedPair(V)
         
     module E =
       struct

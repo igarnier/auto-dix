@@ -1,4 +1,4 @@
-module G = Graph.Make(Aux.Unit)(Aux.Unit)
+module G = Graph.Make(Autotools.Unit)(Autotools.Unit)
 
 module C = Canonical.Make(G)
 
@@ -33,7 +33,7 @@ let load filename =
         if String.length line = 0 then ()
         else if line.[0] = '$' then ()
         else
-          (let fields = Aux.ExtString.nsplit line " " in
+          (let fields = Autotools.ExtString.nsplit line " " in
            match fields with
            | [] ->
               failwith (sprintf "When parsing %s: error, empty line" filename)

@@ -3,7 +3,7 @@ module Make(G : GraphSig.S) =
     
     module VLabelSet     = Set.Make(G.V.L)
     module ELabelSet     = Set.Make(G.E.L)
-    module ELabelSetMset = Aux.Multiset(ELabelSet)
+    module ELabelSetMset = Autotools.Multiset(ELabelSet)
     module Perm          = Perm.CycleBased(G.V)
     module Permgroup  = Permgroup.Make(Perm)
     module GraphMap      = Map.Make(G)
@@ -115,8 +115,8 @@ module Make(G : GraphSig.S) =
       (* let _ = *)
       (*   Printf.printf *)
       (*     "performing cell split with target cell = %s and splitter cell = %s\n" *)
-      (*     (Aux.to_sseq G.V.to_string "," target_cell.list) *)
-      (*     (Aux.to_sseq G.V.to_string "," splitter_cell.list) *)
+      (*     (Autotools.to_sseq G.V.to_string "," target_cell.list) *)
+      (*     (Autotools.to_sseq G.V.to_string "," splitter_cell.list) *)
       (* in *)
       let buckets =
         fold_cell
@@ -135,7 +135,7 @@ module Make(G : GraphSig.S) =
     let refine_partition : G.t -> partition -> partition option =
       (* TODO optim: exception to exit *)
       fun graph partition ->
-      Aux.zip_fold
+      Autotools.zip_fold
         (fun rev_prefix cell suffix acc ->
          (* TODO optim: if cell is singleton, skip all computations. *)
          let prefix = List.rev rev_prefix in (* zip_fold gives prefix in reverse order. *)
@@ -152,7 +152,7 @@ module Make(G : GraphSig.S) =
                (* let _ = *)
                (*   Printf.printf *)
                (*     "cell = %s is not splittable\n" *)
-               (*     (Aux.to_sseq G.V.to_string "," cell.list) *)
+               (*     (Autotools.to_sseq G.V.to_string "," cell.list) *)
                (* in *)
                None
             | Some cell' ->
@@ -208,16 +208,16 @@ module Make(G : GraphSig.S) =
          g2
 
      let print_partition partition =
-       Aux.to_sseq (fun cell ->
-                    let s = Aux.to_sseq G.V.to_string "," cell.list in
+       Autotools.to_sseq (fun cell ->
+                    let s = Autotools.to_sseq G.V.to_string "," cell.list in
                     Printf.sprintf "(%s)" s
                    ) "; " partition
 
      let print_graph g =
        let vertices = List.rev (G.fold_vertex (fun v acc -> v :: acc) g []) in
        let edges    = List.flatten (G.fold_edges (fun _ _ e acc -> e :: acc) g []) in
-       let vs = Aux.to_sseq G.V.to_string "," vertices in
-       let es = Aux.to_sseq G.E.to_string "," edges in
+       let vs = Autotools.to_sseq G.V.to_string "," vertices in
+       let es = Autotools.to_sseq G.E.to_string "," edges in
        Printf.printf "vertices = %s;\nedges =\n%s\n" vs es
            
      let rec explore graph ({ automorphisms; explored; minimizer } as outcome) partition =
@@ -274,7 +274,7 @@ module Make(G : GraphSig.S) =
             enumerate_splits graph outcome (rev_prefix, cell, tail)
 
      and enumerate_splits graph ({ explored = pre_explored } as outcome) (rev_prefix, cell, tail) =
-       Aux.zip_fold
+       Autotools.zip_fold
          (fun rev_cell_prefix v cell_tail outcome_acc ->
           match outcome_acc with
           | `FastExit(_, _) ->
