@@ -197,10 +197,17 @@ module Make(VL : PrintableOrderedType)(EL : PrintableOrderedType) =
         try UPairMap.find (src, dst) graph.edges
         with Not_found -> []
       in
-      let edges  = UPairMap.add (src, dst) (edge :: edges) graph.edges in
+      let edges =
+        let l = E.label edge in
+        if List.exists (fun e -> EL.equal (E.label e)  l) edges then
+          edges
+        else
+          edge :: edges
+      in
+      let edgesmap = UPairMap.add (src, dst) edges graph.edges in
       let iedges = EdgeSet.add edge graph.iedges in
       {
-        graph with edges; iedges
+        graph with edges = edgesmap; iedges
       }
 
     let remove_edge_e graph edge =
