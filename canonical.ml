@@ -316,9 +316,8 @@ module Make(G : GraphSig.S) =
            min_perm      = Perm.identity
          }
        in
-       match explore graph outcome_rec partition
-       with
-       | `Outcome out -> (out.automorphisms, out.minimizer)
+       match explore graph outcome_rec partition with
+       | `Outcome out -> (out.automorphisms, out.minimizer, out.min_perm)
        | `FastExit _  -> failwith "error"
           
          
