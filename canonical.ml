@@ -192,7 +192,8 @@ module Make(G : GraphSig.S) =
        {
          automorphisms : Permgroup.t;
          explored      : Perm.t GraphMap.t;
-         minimizer     : G.t
+         minimizer     : G.t;
+         min_perm      : Perm.t
        }
 
      (* outcome of [explore] are: a canonical graph labeling and the automorphism group of [graph]*)
@@ -220,7 +221,7 @@ module Make(G : GraphSig.S) =
        let es = Autotools.to_sseq G.E.to_string "," edges in
        Printf.printf "vertices = %s;\nedges =\n%s\n" vs es
            
-     let rec explore graph ({ automorphisms; explored; minimizer } as outcome) partition =
+     let rec explore graph ({ automorphisms; explored; minimizer; min_perm } as outcome) partition =
        if is_partition_discrete partition then
          (* let _ = *)
          (*   Printf.printf "explore discrete: %s\nexplored card:%d\n" (print_partition partition) (GraphMap.cardinal explored) *)
@@ -239,7 +240,8 @@ module Make(G : GraphSig.S) =
               {
                 outcome with
                 explored  = GraphMap.add graph' perm explored;
-                minimizer = minimal_graph minimizer graph'
+                minimizer = minimal_graph minimizer graph';
+                min_perm  = perm;
               }
             in
             `Outcome outcome
@@ -306,7 +308,15 @@ module Make(G : GraphSig.S) =
      let compute graph =
        let partition = initial_partition graph in
        let partition = refine_partition_until_equitable graph partition in
-       match explore graph { automorphisms = Permgroup.trivial; explored = GraphMap.empty; minimizer = graph } partition
+       let outcome_rec =
+         {
+           automorphisms = Permgroup.trivial;
+           explored      = GraphMap.empty;
+           minimizer     = graph;
+           min_perm      = Perm.identity
+         }
+       in
+       match explore graph outcome_rec partition
        with
        | `Outcome out -> (out.automorphisms, out.minimizer)
        | `FastExit _  -> failwith "error"
