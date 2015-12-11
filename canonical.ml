@@ -5,7 +5,7 @@ module Make(G : GraphSig.S) =
     module ELabelSet     = Set.Make(G.E.L)
     module ELabelSetMset = Autotools.Multiset(ELabelSet)
     module Perm          = Perm.CycleBased(G.V)
-    module Permgroup  = Permgroup.Make(Perm)
+    module Permgroup     = Permgroup.Make(Perm)
     module GraphMap      = Map.Make(G)
                                   
     type cell = { list : G.vertex list;
