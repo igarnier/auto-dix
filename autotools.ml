@@ -62,7 +62,6 @@ module UnorderedPair(O : Map.OrderedType) =
 
   end
     
-
 module type PrintableOrderedType =
   sig
 
