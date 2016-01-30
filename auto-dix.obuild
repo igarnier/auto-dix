@@ -7,6 +7,6 @@ obuild-ver: 1
 
 library auto-dix
   oflags: -annot
-  modules: canonical, graphSig, graph
+  modules: canonical
   src-dir: .
-  BuildDepends: permgroup
+  BuildDepends: permgroup, ocamlgraph
