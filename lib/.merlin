@@ -1,0 +1,4 @@
+B ../_build/default/lib
+FLG -open Auto_dix__ -w -40
+PKG ocamlgraph
+PKG permgroup

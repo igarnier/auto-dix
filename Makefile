@@ -1,13 +1,12 @@
 all:
-	ocamlbuild -clean
-	ocamlbuild -use-ocamlfind -cflags -annot -I permgroup tests.native
+	jbuilder build
 
-profile:
-	ocamlbuild -clean
-	ocamlbuild -use-ocamlfind -cflags -annot -I permgroup tests.p.native
+# profile:
+# 	ocamlbuild -clean
+# 	ocamlbuild -use-ocamlfind -cflags -annot -I permgroup tests.p.native
 
 
 clean:
-	ocamlbuild -clean
+	jbuilder clean
 	rm *.pdf *.mps *.log gmon.out
 	./clean.sh

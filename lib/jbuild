@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(library
+ (
+  (name        auto_dix)
+  (public_name auto-dix)
+  (libraries (permgroup ocamlgraph))
+ )
+)
